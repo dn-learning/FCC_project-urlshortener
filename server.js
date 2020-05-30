@@ -44,6 +44,14 @@ app.get("/api/hello", function(req, res) {
   res.json({ greeting: "hello API" });
 });
 
+// I can POST a URL to [project_url]/api/shorturl/new and I will receive a shortened URL in the JSON response.
+// Example : {"original_url":"www.google.com","short_url":1}
+// If I pass an invalid URL that doesn't follow the valid http(s)://www.example.com(/more/routes) format,
+// the JSON response will contain an error like {"error":"invalid URL"}. HINT: to be sure that the submitted url points to a valid site you can use the
+// function dns.lookup(host, cb) from the dns core module.
+
+// When I visit the shortened URL, it will redirect me to my original link.
+
 app.post("/api/shorturl/new", function(req, res) {
   let url = req.body.url;
   url = url.replace(/https?:\/\//, '');
@@ -51,10 +59,12 @@ app.post("/api/shorturl/new", function(req, res) {
     if (err) {
       return res.json({"error":"invalid URL"});
     }
+
     var shortUrl = new ShortenedUrl({
       original_url: url,
       short_url: shortid.generate()
     });
+
     shortUrl.save(function (err, shortUrl) {
       if (err) return console.error(err);
       return res.json({
@@ -64,13 +74,15 @@ app.post("/api/shorturl/new", function(req, res) {
     });
   });
 });
-// I can POST a URL to [project_url]/api/shorturl/new and I will receive a shortened URL in the JSON response.
-// Example : {"original_url":"www.google.com","short_url":1}
-// If I pass an invalid URL that doesn't follow the valid http(s)://www.example.com(/more/routes) format,
-// the JSON response will contain an error like {"error":"invalid URL"}. HINT: to be sure that the submitted url points to a valid site you can use the
-// function dns.lookup(host, cb) from the dns core module.
 
-// When I visit the shortened URL, it will redirect me to my original link.
+app.get("/api/shorturl/:short_url", function(req, res) {
+  ShortenedUrl.findOne({short_url: req.params.short_url}, function(err, shortUrl){
+    if (err || !shortUrl) {
+      return res.json({"error":"invalid URL"});
+    }
+    return res.redirect('https://' + shortUrl.original_url);
+  });
+});
 
 app.listen(port, function() {
   console.log("Node.js listening ...");
